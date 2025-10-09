@@ -1,0 +1,5 @@
+{
+  "name": "Culture & Leadership Alignment Analyzer",
+  "description": "An application to analyze organizational culture using the Competing Values Framework (CVF) and leadership competencies using the Competing Values Competency Questionnaire (CVCQ). It provides AI-powered analysis of each methodology and a consolidated cross-analysis of the alignment between culture and leadership.",
+  "requestFramePermissions": []
+}
