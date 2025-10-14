@@ -1,12 +1,15 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { authService } from '../../auth/authService';
 import { type UserResponse, type Scores, type Quadrant } from '../../types';
 import Button from '../ui/Button';
+// FIX: Import `PolarRadiusAxis` from `recharts` to resolve the 'Cannot find name' error.
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { QUADRANT_LABELS, QUADRANT_COLORS } from '../../constants';
 import { analyzeCvf } from '../../services/geminiService';
 import LoadingSkeleton from '../ui/LoadingSkeleton';
 import MarkdownRenderer from '../ui/MarkdownRenderer';
+
 
 interface AdminDashboardProps {
   onSelectResponse: (response: UserResponse) => void;
@@ -44,6 +47,7 @@ const renderPolarAngleAxisTick = ({ x, y, payload }: any) => {
       </g>
     );
 };
+
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onSelectResponse, onLogout, onResponsesChange, consolidatedCvfScores, onCvfAnalysisComplete }) => {
   const [responses, setResponses] = useState<UserResponse[]>([]);

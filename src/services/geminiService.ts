@@ -10,14 +10,27 @@ export class ConfigurationError extends Error {
   }
 }
 
-// Correctly access the API key from Vite's environment variables.
+// FIX: Reverted to use `import.meta.env` which is the correct way to access
+// environment variables in a Vite project. `process.env.API_KEY` is for Node.js
+// environments and was causing a "ReferenceError: process is not defined" in the browser,
+// leading to the white screen.
 const apiKey = import.meta.env.VITE_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
+// Initialize the AI client only if the API key is available.
+let ai: GoogleGenAI | null = null;
+if (apiKey) {
+    ai = new GoogleGenAI({ apiKey });
+} else {
+    // This message will be visible in the browser's developer console.
+    console.error("VITE_API_KEY is not defined. Please create a .env file in the root of your project and add VITE_API_KEY=your_key_here");
+}
 
 const generateAnalysis = async (prompt: string): Promise<string> => {
+  // Check if the AI client was initialized. If not, the API key is missing.
   if (!ai) {
-    // Throw a specific error for configuration problems, which the UI can catch and handle distinctly.
-    throw new ConfigurationError("A chave da API do Gemini não foi configurada corretamente. A análise não pode ser gerada. Por favor, contate o administrador do sistema.");
+    throw new ConfigurationError(
+        "Erro de Configuração: A chave da API do Gemini não foi encontrada. Por favor, contate o administrador para configurar a chave da API no ambiente."
+    );
   }
 
   try {

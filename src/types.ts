@@ -1,3 +1,4 @@
+
 export type Quadrant = 'Clan' | 'Adhocracy' | 'Market' | 'Hierarchy';
 
 export interface CvfQuestion {

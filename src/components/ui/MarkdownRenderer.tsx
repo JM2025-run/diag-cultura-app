@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 
 interface MarkdownRendererProps {
@@ -13,8 +15,10 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ text }) => {
       return line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
     };
 
+    // FIX: Use React.ReactNode instead of JSX.Element to avoid "Cannot find namespace 'JSX'" error.
     const elements: React.ReactNode[] = [];
     const lines = text.split('\n');
+    // FIX: Use React.ReactNode instead of JSX.Element to avoid "Cannot find namespace 'JSX'" error.
     let listItems: React.ReactNode[] = [];
 
     const flushList = () => {

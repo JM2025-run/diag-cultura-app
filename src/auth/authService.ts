@@ -3,7 +3,8 @@ import { type User, type UserDetails, type UserResponse } from '../types';
 // --- DADOS DOS USUÁRIOS ---
 // Lista expandida para 30 usuários.
 const USERS_DB: Record<string, { password: string; role: 'ADMIN' | 'USER' }> = {
-  'admin': { password: 'jmlustosa2025$', role: 'ADMIN' },
+  // FIX: Corrected the role to 'ADMIN' to match the defined type.
+  'admin': { password: 'admin123', role: 'ADMIN' },
   'usuario1': { password: 'user1', role: 'USER' },
   'usuario2': { password: 'user2', role: 'USER' },
   'usuario3': { password: 'user3', role: 'USER' },

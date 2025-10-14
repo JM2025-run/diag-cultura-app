@@ -22,7 +22,9 @@ const CvfScreen: React.FC<CvfScreenProps> = ({ onSubmit }) => {
   const totals = useMemo(() => {
     return Object.keys(answers).map(key => {
         const index = parseInt(key, 10);
-        return Object.values(answers[index]).reduce((sum, val) => sum + Number(val), 0);
+        // FIX: Explicitly type the values array to resolve the "'val' is of type 'unknown'" error in the reduce function.
+        const values: number[] = Object.values(answers[index]);
+        return values.reduce((sum, val) => sum + val, 0);
     });
   }, [answers]);
 
