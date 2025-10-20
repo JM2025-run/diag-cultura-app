@@ -10,13 +10,15 @@ export class ConfigurationError extends Error {
   }
 }
 
-// FIX: Corrected environment variable access to use Vite's standard `import.meta.env`
-// instead of Node's `process.env`, which was causing the build to fail on Netlify.
-const apiKey = import.meta.env.VITE_API_KEY;
-if (!apiKey) {
-  throw new ConfigurationError("A chave da API do Gemini (VITE_API_KEY) não está configurada no ambiente.");
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!GEMINI_API_KEY) {
+  // This error will be caught and displayed prominently in the UI.
+  throw new ConfigurationError("A chave da API do Gemini não foi configurada. Por favor, contate o administrador.");
 }
-const ai = new GoogleGenAI({ apiKey });
+
+const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+
 
 const generateAnalysis = async (prompt: string): Promise<string> => {
   try {
@@ -27,7 +29,6 @@ const generateAnalysis = async (prompt: string): Promise<string> => {
     return response.text;
   } catch (error) {
     console.error("Error calling Gemini API:", error);
-    // Propagate a more user-friendly error message to the UI layer.
     if (error instanceof Error && /API key not valid/i.test(error.message)) {
         throw new Error("Erro de Autenticação: A chave da API do Gemini é inválida. Por favor, contate o administrador.");
     }
