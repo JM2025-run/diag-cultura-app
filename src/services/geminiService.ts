@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 import { type Scores } from "../types";
 import { QUADRANT_LABELS } from "../constants";
@@ -11,14 +10,15 @@ export class ConfigurationError extends Error {
   }
 }
 
-// FIX: Updated Gemini API initialization to use `process.env.API_KEY` as per coding guidelines.
-// This resolves the TypeScript error related to `import.meta.env` and removes
-// the now-redundant logic for handling a missing API key, assuming it's always available.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// FIX: Corrected environment variable access to use Vite's standard `import.meta.env`
+// instead of Node's `process.env`, which was causing the build to fail on Netlify.
+const apiKey = import.meta.env.VITE_API_KEY;
+if (!apiKey) {
+  throw new ConfigurationError("A chave da API do Gemini (VITE_API_KEY) não está configurada no ambiente.");
+}
+const ai = new GoogleGenAI({ apiKey });
 
 const generateAnalysis = async (prompt: string): Promise<string> => {
-  // FIX: The null check for `ai` is removed as the guidelines state to assume
-  // the API key is always configured, ensuring `ai` is always initialized.
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
