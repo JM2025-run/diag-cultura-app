@@ -14,7 +14,6 @@ export default defineConfig({
         'react-dom/client',
         '@google/genai',
         'recharts',
-        '@supabase/supabase-js',
       ],
     },
   },
