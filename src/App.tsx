@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import IntroScreen from './components/IntroScreen';
 import CvfScreen from './components/CvfScreen';
@@ -15,6 +14,7 @@ type UserScreen = 'intro' | 'cvf' | 'cvcq' | 'completion';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
   const [userScreen, setUserScreen] = useState<UserScreen>('intro');
   const [cvfScores, setCvfScores] = useState<Scores | null>(null);
   const [cvcqScores, setCvcqScores] = useState<Scores | null>(null);
@@ -25,35 +25,37 @@ const App: React.FC = () => {
 
 
   useEffect(() => {
-    const userInSession = authService.getCurrentUser();
-    if (userInSession) {
-      const userDetails = authService.getUserDetails(userInSession.username);
-      // Combine user and details immediately. If details are null, properties like fullName will be undefined.
-      setCurrentUser({ ...userInSession, ...userDetails });
-    }
-  }, []);
-
-  const handleLogin = useCallback((user: User) => {
-    const userDetails = authService.getUserDetails(user.username);
-    // Set the full user object. The render logic will determine if registration is needed.
-    setCurrentUser({ ...user, ...userDetails });
-    setUserScreen('intro'); // Reset to intro screen on every login
-  }, []);
-
-  const handleRegister = useCallback((details: UserDetails) => {
-    setCurrentUser(currentUser => {
-      if (!currentUser) {
-        // This case should not happen if called from RegistrationScreen, but it's a safeguard.
-        return null;
+    const checkCurrentUser = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setCurrentUser(user);
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+        setCurrentUser(null);
+      } finally {
+        setIsLoadingUser(false);
       }
-      authService.saveUserDetails(currentUser.username, details);
-      // Return the updated user object to set the state
-      return { ...currentUser, ...details };
-    });
+    };
+    checkCurrentUser();
   }, []);
 
-  const handleLogout = useCallback(() => {
-    authService.logout();
+  const handleLogin = useCallback(async () => {
+    // After login, Supabase handles the session. We just need to refetch the user.
+    setIsLoadingUser(true);
+    const user = await authService.getCurrentUser();
+    setCurrentUser(user);
+    setUserScreen('intro'); // Reset to intro screen on every login
+    setIsLoadingUser(false);
+  }, []);
+
+  const handleRegister = useCallback(async (details: UserDetails) => {
+    if (!currentUser) return;
+    const updatedUser = await authService.saveUserDetails(currentUser.id, details);
+    setCurrentUser(updatedUser);
+  }, [currentUser]);
+
+  const handleLogout = useCallback(async () => {
+    await authService.logout();
     setCurrentUser(null);
     setUserScreen('intro');
     setCvfScores(null);
@@ -113,6 +115,10 @@ const App: React.FC = () => {
 
 
   const renderContent = () => {
+    if (isLoadingUser) {
+        return <div className="text-center">Carregando...</div>;
+    }
+
     if (!currentUser) {
       return <LoginScreen onLogin={handleLogin} />;
     }
@@ -137,7 +143,6 @@ const App: React.FC = () => {
     }
     
     // For regular users, check if they need to complete registration.
-    // This is the single source of truth.
     if (!currentUser.fullName || !currentUser.position) {
       return <RegistrationScreen onRegister={handleRegister} />;
     }
@@ -145,7 +150,7 @@ const App: React.FC = () => {
     // If user is fully registered, proceed to the questionnaire flow.
     switch (userScreen) {
       case 'intro':
-        return <IntroScreen onStart={handleStart} username={currentUser.username} fullName={currentUser.fullName} />;
+        return <IntroScreen onStart={handleStart} username={currentUser.email} fullName={currentUser.fullName} />;
       case 'cvf':
         return <CvfScreen onSubmit={handleCvfSubmit} />;
       case 'cvcq':
@@ -153,20 +158,19 @@ const App: React.FC = () => {
       case 'completion':
         if (cvfScores && cvcqScores && currentUser.fullName && currentUser.position) {
           const responseData = { 
-            username: currentUser.username, 
+            user_id: currentUser.id,
+            username: currentUser.email, 
             fullName: currentUser.fullName, 
             position: currentUser.position, 
             cvfScores, 
             cvcqScores 
           };
-          // Automatically save the response when the user reaches the completion screen
-          authService.saveUserResponse(responseData);
           return <CompletionScreen onLogout={handleLogout} userResponse={responseData} />;
         }
         // Fallback if scores/details are missing
-        return <IntroScreen onStart={handleStart} username={currentUser.username} fullName={currentUser.fullName} />;
+        return <IntroScreen onStart={handleStart} username={currentUser.email} fullName={currentUser.fullName} />;
       default:
-        return <IntroScreen onStart={handleStart} username={currentUser.username} fullName={currentUser.fullName} />;
+        return <IntroScreen onStart={handleStart} username={currentUser.email} fullName={currentUser.fullName} />;
     }
   };
 

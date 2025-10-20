@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { type Scores } from "../types";
 import { QUADRANT_LABELS } from "../constants";
@@ -10,29 +11,14 @@ export class ConfigurationError extends Error {
   }
 }
 
-// FIX: Reverted to use `import.meta.env` which is the correct way to access
-// environment variables in a Vite project. `process.env.API_KEY` is for Node.js
-// environments and was causing a "ReferenceError: process is not defined" in the browser,
-// leading to the white screen.
-const apiKey = import.meta.env.VITE_API_KEY;
-
-// Initialize the AI client only if the API key is available.
-let ai: GoogleGenAI | null = null;
-if (apiKey) {
-    ai = new GoogleGenAI({ apiKey });
-} else {
-    // This message will be visible in the browser's developer console.
-    console.error("VITE_API_KEY is not defined. Please create a .env file in the root of your project and add VITE_API_KEY=your_key_here");
-}
+// FIX: Updated Gemini API initialization to use `process.env.API_KEY` as per coding guidelines.
+// This resolves the TypeScript error related to `import.meta.env` and removes
+// the now-redundant logic for handling a missing API key, assuming it's always available.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const generateAnalysis = async (prompt: string): Promise<string> => {
-  // Check if the AI client was initialized. If not, the API key is missing.
-  if (!ai) {
-    throw new ConfigurationError(
-        "Erro de Configuração: A chave da API do Gemini não foi encontrada. Por favor, contate o administrador para configurar a chave da API no ambiente."
-    );
-  }
-
+  // FIX: The null check for `ai` is removed as the guidelines state to assume
+  // the API key is always configured, ensuring `ai` is always initialized.
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',

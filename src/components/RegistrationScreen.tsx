@@ -1,26 +1,27 @@
-
-
 import React, { useState } from 'react';
 import Button from './ui/Button';
 import { type UserDetails } from '../types';
 
 interface RegistrationScreenProps {
-  onRegister: (details: UserDetails) => void;
+  onRegister: (details: UserDetails) => Promise<void>;
 }
 
 const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister }) => {
   const [fullName, setFullName] = useState('');
   const [position, setPosition] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !position.trim()) {
       setError('Por favor, preencha todos os campos.');
       return;
     }
     setError('');
-    onRegister({ fullName, position });
+    setLoading(true);
+    await onRegister({ fullName, position });
+    setLoading(false);
   };
 
   return (
@@ -69,8 +70,8 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister }) =
         {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
         <div>
-          <Button type="submit" size="lg" className="w-full flex justify-center">
-            Salvar e Continuar
+          <Button type="submit" size="lg" className="w-full flex justify-center" disabled={loading}>
+            {loading ? 'Salvando...' : 'Salvar e Continuar'}
           </Button>
         </div>
       </form>

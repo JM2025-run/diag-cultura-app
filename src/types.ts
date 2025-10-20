@@ -1,4 +1,3 @@
-
 export type Quadrant = 'Clan' | 'Adhocracy' | 'Market' | 'Hierarchy';
 
 export interface CvfQuestion {
@@ -23,7 +22,8 @@ export interface Scores {
 }
 
 export interface User {
-  username: string;
+  id: string; // Supabase user ID (UUID)
+  email: string;
   role: 'ADMIN' | 'USER';
   fullName?: string;
   position?: string;
@@ -35,7 +35,9 @@ export interface UserDetails {
 }
 
 export interface UserResponse {
-  username: string;
+  id?: number; // DB primary key
+  user_id: string; // Foreign key to user
+  username: string; // User's email for display
   fullName: string;
   position: string;
   cvfScores: Scores;

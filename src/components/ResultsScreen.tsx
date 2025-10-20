@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import {
   Radar,
@@ -10,7 +12,7 @@ import {
   Tooltip
 } from 'recharts';
 import { analyzeCvcq, analyzeCross, ConfigurationError } from '../services/geminiService';
-import { type Scores } from '../types';
+import { type Scores, type Quadrant } from '../types';
 import { QUADRANT_LABELS, QUADRANT_COLORS } from '../constants';
 import Button from './ui/Button';
 import LoadingSkeleton from './ui/LoadingSkeleton';
@@ -100,6 +102,7 @@ const renderPolarAngleAxisTick = ({ x, y, payload }: any) => {
   const parts = payload.value.split('\n');
   const angle = Math.atan2(y - 150, x - 225) * 180 / Math.PI; // Approximate center
   
+  // FIX: Explicitly define the type for textAnchor to satisfy the SVG 'text' element's 'textAnchor' property.
   let textAnchor: "middle" | "start" | "end" = "middle";
   if (angle > -10 && angle < 10) textAnchor = "start"; // Right
   if (angle > 170 || angle < -170) textAnchor = "end";   // Left
@@ -166,6 +169,8 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ cvfScores, cvcqScores, on
   }, [cvfScores, cvcqScores]);
 
   const formatChartData = (scores: Scores, dataKey: string) => {
+    // FIX: Property 'toFixed' does not exist on type 'unknown'.
+    // By casting Object.keys, `key` becomes a typed key of Scores, allowing safe access.
     return (Object.keys(scores) as (keyof Scores)[]).map(key => {
         const score = parseFloat(scores[key].toFixed(2));
         return {
@@ -179,7 +184,9 @@ const ResultsScreen: React.FC<ResultsScreenProps> = ({ cvfScores, cvcqScores, on
   
   const generateReportText = useCallback(() => {
     const cvfLabel = "Cultura Consolidada (CVF)";
+    // FIX: Cast `s` to a number before calling `toFixed`, as `Object.entries` infers its type as `unknown`.
     const cvfScoresText = Object.entries(cvfScores).map(([q, s]) => `${QUADRANT_LABELS[q as keyof Scores]}: ${(s as number).toFixed(2)}`).join('; ');
+    // FIX: Cast `s` to a number before calling `toFixed`, as `Object.entries` infers its type as `unknown`.
     const cvcqScoresText = Object.entries(cvcqScores).map(([q, s]) => `${QUADRANT_LABELS[q as keyof Scores]}: ${(s as number).toFixed(2)}`).join('; ');
     
     return `

@@ -1,112 +1,120 @@
+import { supabase } from '../services/supabaseClient';
 import { type User, type UserDetails, type UserResponse } from '../types';
 
-// --- DADOS DOS USUÁRIOS ---
-// Lista expandida para 30 usuários.
-const USERS_DB: Record<string, { password: string; role: 'ADMIN' | 'USER' }> = {
-  // FIX: Corrected the role to 'ADMIN' to match the defined type.
-  'admin': { password: 'admin123', role: 'ADMIN' },
-  'usuario1': { password: 'user1', role: 'USER' },
-  'usuario2': { password: 'user2', role: 'USER' },
-  'usuario3': { password: 'user3', role: 'USER' },
-  'usuario4': { password: 'user4', role: 'USER' },
-  'usuario5': { password: 'user5', role: 'USER' },
-  'usuario6': { password: 'user6', role: 'USER' },
-  'usuario7': { password: 'user7', role: 'USER' },
-  'usuario8': { password: 'user8', role: 'USER' },
-  'usuario9': { password: 'user9', role: 'USER' },
-  'usuario10': { password: 'user10', role: 'USER' },
-  'usuario11': { password: 'user11', role: 'USER' },
-  'usuario12': { password: 'user12', role: 'USER' },
-  'usuario13': { password: 'user13', role: 'USER' },
-  'usuario14': { password: 'user14', role: 'USER' },
-  'usuario15': { password: 'user15', role: 'USER' },
-  'usuario16': { password: 'user16', role: 'USER' },
-  'usuario17': { password: 'user17', role: 'USER' },
-  'usuario18': { password: 'user18', role: 'USER' },
-  'usuario19': { password: 'user19', role: 'USER' },
-  'usuario20': { password: 'user20', role: 'USER' },
-  'usuario21': { password: 'user21', role: 'USER' },
-  'usuario22': { password: 'user22', role: 'USER' },
-  'usuario23': { password: 'user23', role: 'USER' },
-  'usuario24': { password: 'user24', role: 'USER' },
-  'usuario25': { password: 'user25', role: 'USER' },
-  'usuario26': { password: 'user26', role: 'USER' },
-  'usuario27': { password: 'user27', role: 'USER' },
-  'usuario28': { password: 'user28', role: 'USER' },
-  'usuario29': { password: 'user29', role: 'USER' },
-  'usuario30': { password: 'user30', role: 'USER' },
-};
-// --------------------------
-
-const SESSION_KEY = 'currentUser';
-const RESPONSE_PREFIX = 'response_';
-const USER_DETAILS_PREFIX = 'userDetails_';
-
 export const authService = {
-  login: (username: string, password: string):User | null => {
-    const userData = USERS_DB[username];
-    if (userData && userData.password === password) {
-      const user: User = { username, role: userData.role };
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      return user;
+  login: async (email: string, password: string): Promise<User | null> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      console.error('Login error:', error.message);
+      return null;
     }
+
+    if (data.user) {
+      // After login, fetch profile to get role and details
+      return await authService.getCurrentUser();
+    }
+    
     return null;
   },
 
-  logout: () => {
-    sessionStorage.removeItem(SESSION_KEY);
+  logout: async (): Promise<void> => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+        console.error('Logout error:', error.message);
+    }
   },
 
-  getCurrentUser: (): User | null => {
-    const userJson = sessionStorage.getItem(SESSION_KEY);
-    if (!userJson) return null;
-    try {
-      return JSON.parse(userJson);
-    } catch (error) {
-      console.error("Failed to parse user from session storage. Clearing corrupted data.", error);
-      sessionStorage.removeItem(SESSION_KEY);
+  getCurrentUser: async (): Promise<User | null> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
       return null;
     }
+
+    const { user: authUser } = session;
+
+    // Fetch user profile from 'profiles' table
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('role, full_name, position')
+      .eq('id', authUser.id)
+      .single();
+
+    if (error) {
+      console.error('Error fetching user profile:', error.message);
+      // Still return basic user info if profile fetch fails
+      return {
+        id: authUser.id,
+        email: authUser.email || '',
+        role: 'USER', // default role
+      };
+    }
+    
+    return {
+      id: authUser.id,
+      email: authUser.email || '',
+      role: profile.role,
+      fullName: profile.full_name,
+      position: profile.position,
+    };
   },
 
-  saveUserDetails: (username: string, details: UserDetails): void => {
-    localStorage.setItem(`${USER_DETAILS_PREFIX}${username}`, JSON.stringify(details));
+  saveUserDetails: async (userId: string, details: UserDetails): Promise<User | null> => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        full_name: details.fullName,
+        position: details.position,
+      })
+      .eq('id', userId);
+
+    if (error) {
+      console.error('Error updating user details:', error.message);
+    }
+
+    // Refetch user to get updated state
+    return await authService.getCurrentUser();
   },
 
-  getUserDetails: (username: string): UserDetails | null => {
-    const detailsJson = localStorage.getItem(`${USER_DETAILS_PREFIX}${username}`);
-    if (!detailsJson) return null;
-    try {
-      return JSON.parse(detailsJson);
-    } catch (error) {
-      console.error(`Failed to parse user details for ${username}. Clearing corrupted data.`, error);
-      localStorage.removeItem(`${USER_DETAILS_PREFIX}${username}`);
-      return null;
+  saveUserResponse: async (response: Omit<UserResponse, 'id'>): Promise<void> => {
+    const { error } = await supabase.from('responses').insert({
+      user_id: response.user_id,
+      username: response.username,
+      full_name: response.fullName,
+      position: response.position,
+      cvf_scores: response.cvfScores,
+      cvcq_scores: response.cvcqScores,
+    });
+
+    if (error) {
+      console.error('Error saving user response:', error.message);
+      throw new Error('Failed to save user response.');
     }
-  },
-  
-  saveUserResponse: (response: UserResponse): void => {
-    if (localStorage.getItem(`${RESPONSE_PREFIX}${response.username}`)) {
-      console.warn(`Overwriting existing response for user: ${response.username}`);
-    }
-    localStorage.setItem(`${RESPONSE_PREFIX}${response.username}`, JSON.stringify(response));
   },
 
-  getAllResponses: (): UserResponse[] => {
-    const responses: UserResponse[] = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith(RESPONSE_PREFIX)) {
-        const responseJson = localStorage.getItem(key);
-        if (responseJson) {
-          try {
-            responses.push(JSON.parse(responseJson));
-          } catch (error) {
-            console.error(`Failed to parse response from localStorage for key: ${key}. Skipping.`, error);
-          }
-        }
-      }
+  getAllResponses: async (): Promise<UserResponse[]> => {
+    const { data, error } = await supabase
+      .from('responses')
+      .select('*');
+
+    if (error) {
+      console.error('Error fetching all responses:', error.message);
+      return [];
     }
-    return responses;
+
+    // Map DB fields (e.g., full_name) to camelCase fields (e.g., fullName)
+    return data.map(item => ({
+        id: item.id,
+        user_id: item.user_id,
+        username: item.username,
+        fullName: item.full_name,
+        position: item.position,
+        cvfScores: item.cvf_scores,
+        cvcqScores: item.cvcq_scores,
+    }));
   },
 };

@@ -1,27 +1,27 @@
-
-
 import React, { useState } from 'react';
 import Button from './ui/Button';
 import { authService } from '../auth/authService';
-import { type User } from '../types';
 
 interface LoginScreenProps {
-  onLogin: (user: User) => void;
+  onLogin: () => void;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const user = authService.login(username, password);
+    setLoading(true);
+    const user = await authService.login(email, password);
+    setLoading(false);
     if (user) {
-      onLogin(user);
+      onLogin();
     } else {
-      setError('Usuário ou senha inválidos.');
+      setError('Email ou senha inválidos.');
     }
   };
 
@@ -33,18 +33,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       </div>
       <form onSubmit={handleLogin} className="space-y-6">
         <div>
-          <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-            Usuário
+          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            Email
           </label>
           <div className="mt-1">
             <input
-              id="username"
-              name="username"
-              type="text"
-              autoComplete="username"
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
               required
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
             />
           </div>
@@ -71,8 +71,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
         <div>
-          <Button type="submit" size="lg" className="w-full flex justify-center">
-            Entrar
+          <Button type="submit" size="lg" className="w-full flex justify-center" disabled={loading}>
+            {loading ? 'Entrando...' : 'Entrar'}
           </Button>
         </div>
       </form>
