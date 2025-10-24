@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { type Scores } from "../types";
 import { QUADRANT_LABELS } from "../constants";
 
-// Custom error for configuration issues, allowing the UI to display a specific message.
+// Erro personalizado para problemas de configuração.
 export class ConfigurationError extends Error {
   constructor(message: string) {
     super(message);
@@ -10,11 +10,11 @@ export class ConfigurationError extends Error {
   }
 }
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+// Acessa corretamente a chave da API do Gemini a partir das variáveis de ambiente do Vite.
+const GEMINI_API_KEY = (import.meta as any).env.VITE_GEMINI_API_KEY;
 
 if (!GEMINI_API_KEY) {
-  // This error will be caught and displayed prominently in the UI.
-  throw new ConfigurationError("A chave da API do Gemini não foi configurada. Por favor, contate o administrador.");
+    throw new ConfigurationError("A variável de ambiente VITE_GEMINI_API_KEY não está definida.");
 }
 
 const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });

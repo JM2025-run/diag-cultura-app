@@ -40,11 +40,11 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogin = useCallback(async () => {
-    // After login, Supabase handles the session. We just need to refetch the user.
+    // Após o login, o Supabase gerencia a sessão. Apenas precisamos buscar novamente o usuário.
     setIsLoadingUser(true);
     const user = await authService.getCurrentUser();
     setCurrentUser(user);
-    setUserScreen('intro'); // Reset to intro screen on every login
+    setUserScreen('intro'); // Reseta para a tela de introdução a cada login
     setIsLoadingUser(false);
   }, []);
 
@@ -79,7 +79,6 @@ const App: React.FC = () => {
       setCvcqScores(scores);
       setUserScreen('completion');
     } else {
-      // Fallback in case state is lost
       handleLogout();
     }
   }, [cvfScores, currentUser, handleLogout]);
@@ -116,7 +115,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (isLoadingUser) {
-        return <div className="text-center">Carregando...</div>;
+        return <div className="text-center"><p>Carregando...</p></div>;
     }
 
     if (!currentUser) {
@@ -124,10 +123,14 @@ const App: React.FC = () => {
     }
 
     if (currentUser.role === 'ADMIN') {
+       // O admin também precisa preencher o perfil na primeira vez.
+       if (!currentUser.fullName || !currentUser.position) {
+         return <RegistrationScreen onRegister={handleRegister} />;
+      }
       if (selectedResponse && consolidatedCvfScores) {
         return <ResultsScreen 
-                  cvfScores={consolidatedCvfScores} // Consolidated culture
-                  cvcqScores={selectedResponse.cvcqScores} // Individual leadership
+                  cvfScores={consolidatedCvfScores} // Cultura consolidada
+                  cvcqScores={selectedResponse.cvcqScores} // Liderança individual
                   onBack={handleBackToDashboard}
                   reportTitle={`Análise de Alinhamento: ${selectedResponse.fullName}`}
                   consolidatedCvfAnalysis={consolidatedCvfAnalysis}
@@ -142,12 +145,10 @@ const App: React.FC = () => {
              />;
     }
     
-    // For regular users, check if they need to complete registration.
     if (!currentUser.fullName || !currentUser.position) {
       return <RegistrationScreen onRegister={handleRegister} />;
     }
 
-    // If user is fully registered, proceed to the questionnaire flow.
     switch (userScreen) {
       case 'intro':
         return <IntroScreen onStart={handleStart} username={currentUser.email} fullName={currentUser.fullName} />;
@@ -159,7 +160,6 @@ const App: React.FC = () => {
         if (cvfScores && cvcqScores && currentUser.fullName && currentUser.position) {
           const responseData = { 
             user_id: currentUser.id,
-            username: currentUser.email, 
             fullName: currentUser.fullName, 
             position: currentUser.position, 
             cvfScores, 
@@ -167,7 +167,6 @@ const App: React.FC = () => {
           };
           return <CompletionScreen onLogout={handleLogout} userResponse={responseData} />;
         }
-        // Fallback if scores/details are missing
         return <IntroScreen onStart={handleStart} username={currentUser.email} fullName={currentUser.fullName} />;
       default:
         return <IntroScreen onStart={handleStart} username={currentUser.email} fullName={currentUser.fullName} />;

@@ -20,8 +20,17 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister }) =
     }
     setError('');
     setLoading(true);
-    await onRegister({ fullName, position });
-    setLoading(false);
+    try {
+      await onRegister({ fullName, position });
+    } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Ocorreu um erro desconhecido ao salvar o perfil.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,7 +76,11 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister }) =
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+        {error && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
+            <p>{error}</p>
+          </div>
+        )}
 
         <div>
           <Button type="submit" size="lg" className="w-full flex justify-center" disabled={loading}>

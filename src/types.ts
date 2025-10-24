@@ -22,7 +22,7 @@ export interface Scores {
 }
 
 export interface User {
-  id: string; // Supabase user ID (UUID)
+  id: string;
   email: string;
   role: 'ADMIN' | 'USER';
   fullName?: string;
@@ -35,9 +35,9 @@ export interface UserDetails {
 }
 
 export interface UserResponse {
-  id?: number; // DB primary key
-  user_id: string; // Foreign key to user
-  username: string; // User's email for display
+  id: number;
+  user_id: string;
+  username: string; // O email do usuário
   fullName: string;
   position: string;
   cvfScores: Scores;

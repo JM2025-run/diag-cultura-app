@@ -64,7 +64,7 @@ export const authService = {
   },
 
   saveUserDetails: async (userId: string, details: UserDetails): Promise<User | null> => {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('profiles')
       .update({
         full_name: details.fullName,
@@ -73,26 +73,68 @@ export const authService = {
       .eq('id', userId);
 
     if (error) {
-      console.error('Error updating user details:', error.message);
+      console.error('Error updating user details:', error);
+      // Check for a specific RLS error to provide a more targeted message
+      if (error.code === '42501' || error.message.includes('row level security')) {
+         throw new Error('Não foi possível salvar: Permissão negada pela política de segurança (RLS) do banco de dados. Por favor, contate o administrador para aplicar as permissões corretas.');
+      }
+      throw new Error(`Erro ao salvar perfil: ${error.message}`);
     }
+
 
     // Refetch user to get updated state
     return await authService.getCurrentUser();
   },
 
-  saveUserResponse: async (response: Omit<UserResponse, 'id'>): Promise<void> => {
-    const { error } = await supabase.from('responses').insert({
-      user_id: response.user_id,
-      username: response.username,
-      full_name: response.fullName,
-      position: response.position,
-      cvf_scores: response.cvfScores,
-      cvcq_scores: response.cvcqScores,
-    });
+  saveUserResponse: async (response: Omit<UserResponse, 'id' | 'username'>): Promise<void> => {
+    const currentUser = await authService.getCurrentUser();
+    if (!currentUser) throw new Error("Usuário não autenticado");
+
+    const responseData = {
+        user_id: response.user_id,
+        username: currentUser.email,
+        full_name: response.fullName,
+        position: response.position,
+        cvf_scores: response.cvfScores,
+        cvcq_scores: response.cvcqScores,
+    };
+
+    // 1. Verifique se já existe uma resposta para este usuário
+    const { data: existingResponse, error: selectError } = await supabase
+        .from('responses')
+        .select('id')
+        .eq('user_id', response.user_id)
+        .maybeSingle();
+
+    if (selectError) {
+        console.error('Erro ao verificar resposta existente:', selectError.message);
+        throw new Error(`Erro ao verificar resposta existente: ${selectError.message}`);
+    }
+
+    let error;
+
+    if (existingResponse) {
+        // 2. Se existir, atualize-a
+        const { error: updateError } = await supabase
+            .from('responses')
+            .update(responseData)
+            .eq('user_id', response.user_id);
+        error = updateError;
+    } else {
+        // 3. Se não existir, insira uma nova
+        const { error: insertError } = await supabase
+            .from('responses')
+            .insert(responseData);
+        error = insertError;
+    }
 
     if (error) {
-      console.error('Error saving user response:', error.message);
-      throw new Error('Failed to save user response.');
+      console.error('Erro ao salvar resposta do usuário:', error.message);
+       // Verifica um erro específico de RLS para fornecer uma mensagem mais direcionada
+      if (error.code === '42501' || error.message.includes('row level security')) {
+         throw new Error('Não foi possível salvar: Permissão negada pela política de segurança (RLS). Verifique se as permissões de INSERT e UPDATE estão habilitadas para a tabela de respostas.');
+      }
+      throw new Error(`Erro ao salvar resposta: ${error.message}`);
     }
   },
 
@@ -106,7 +148,7 @@ export const authService = {
       return [];
     }
 
-    // Map DB fields (e.g., full_name) to camelCase fields (e.g., fullName)
+    // Mapeia os campos do BD (ex: full_name) para campos camelCase (ex: fullName)
     return data.map(item => ({
         id: item.id,
         user_id: item.user_id,

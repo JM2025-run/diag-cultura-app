@@ -5,11 +5,12 @@ import { authService } from '../auth/authService';
 
 interface CompletionScreenProps {
   onLogout: () => void;
-  userResponse: Omit<UserResponse, 'id'>;
+  userResponse: Omit<UserResponse, 'id' | 'username'>;
 }
 
 const CompletionScreen: React.FC<CompletionScreenProps> = ({ onLogout, userResponse }) => {
   const [saveStatus, setSaveStatus] = useState<'saving' | 'saved' | 'error'>('saving');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   useEffect(() => {
     const saveResponse = async () => {
@@ -18,6 +19,11 @@ const CompletionScreen: React.FC<CompletionScreenProps> = ({ onLogout, userRespo
         setSaveStatus('saved');
       } catch (error) {
         console.error("Failed to save response:", error);
+        if (error instanceof Error) {
+            setErrorMessage(error.message);
+        } else {
+            setErrorMessage("Ocorreu um erro desconhecido ao salvar.");
+        }
         setSaveStatus('error');
       }
     };
@@ -29,7 +35,7 @@ const CompletionScreen: React.FC<CompletionScreenProps> = ({ onLogout, userRespo
     <div className="text-center transition-opacity duration-300 py-8">
       {saveStatus === 'saved' && (
         <>
-            <svg className="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="mx-auto h-12 w-12 text-green-500" fill="none" viewBox="0 0 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h1 className="mt-4 text-3xl sm:text-4xl font-bold text-gray-800">Questionário Finalizado!</h1>
@@ -50,12 +56,12 @@ const CompletionScreen: React.FC<CompletionScreenProps> = ({ onLogout, userRespo
 
       {saveStatus === 'error' && (
          <>
-            <svg className="mx-auto h-12 w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="mx-auto h-12 w-12 text-red-500" fill="none" viewBox="0 0 24" stroke="currentColor">
                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <h1 className="mt-4 text-3xl sm:text-4xl font-bold text-gray-800">Erro ao Salvar</h1>
             <p className="mt-2 text-gray-600 mb-6 max-w-lg mx-auto">
-                Não foi possível registrar sua resposta. Por favor, verifique sua conexão com a internet e tente novamente ou contate o administrador.
+                {errorMessage || 'Não foi possível registrar sua resposta. Por favor, verifique sua conexão com a internet e tente novamente ou contate o administrador.'}
             </p>
         </>
       )}

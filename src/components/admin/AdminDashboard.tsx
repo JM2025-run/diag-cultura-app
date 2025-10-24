@@ -17,15 +17,12 @@ interface AdminDashboardProps {
   onCvfAnalysisComplete: (analysis: string) => void;
 }
 
-// Helper function to determine the dominant quadrant from a set of scores.
 const getDominantProfile = (scores: Scores): Quadrant => {
     return (Object.keys(scores) as Quadrant[]).reduce((a, b) => scores[a] > scores[b] ? a : b);
 };
 
-// Custom tick for PolarAngleAxis to show quadrant name and score in multiple lines, preventing cutoff.
 const renderPolarAngleAxisTick = ({ x, y, payload }: any) => {
     const parts = payload.value.split('\n');
-    
     const centerX = 224;
     const centerY = 160;
     const angle = Math.atan2(y - centerY, x - centerX) * 180 / Math.PI;
@@ -47,7 +44,7 @@ const renderPolarAngleAxisTick = ({ x, y, payload }: any) => {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onSelectResponse, onLogout, onResponsesChange, consolidatedCvfScores, onCvfAnalysisComplete }) => {
   const [responses, setResponses] = useState<UserResponse[]>([]);
-  const [isLoadingResponses, setIsLoadingResponses] = useState(true);
+  const [loadingResponses, setLoadingResponses] = useState(true);
   
   const [cvfAnalysis, setCvfAnalysis] = useState('');
   const [loadingCvfAnalysis, setLoadingCvfAnalysis] = useState(true);
@@ -56,11 +53,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onSelectResponse, onLog
 
   useEffect(() => {
     const fetchResponses = async () => {
-        setIsLoadingResponses(true);
-        const allResponses = await authService.getAllResponses();
-        setResponses(allResponses);
-        onResponsesChange(allResponses);
-        setIsLoadingResponses(false);
+        setLoadingResponses(true);
+        try {
+            const allResponses = await authService.getAllResponses();
+            setResponses(allResponses);
+            onResponsesChange(allResponses);
+        } catch (error) {
+            console.error("Failed to fetch responses:", error);
+        } finally {
+            setLoadingResponses(false);
+        }
     };
     fetchResponses();
   }, [onResponsesChange]);
@@ -83,19 +85,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onSelectResponse, onLog
             .finally(() => {
                 setLoadingCvfAnalysis(false);
             });
-    } else {
+    } else if (!loadingResponses) {
         setCvfAnalysis('');
         onCvfAnalysisComplete('');
+        setLoadingCvfAnalysis(false);
     }
-  }, [consolidatedCvfScores, onCvfAnalysisComplete]);
-
+  }, [consolidatedCvfScores, onCvfAnalysisComplete, loadingResponses]);
 
   const consolidatedChartData = useMemo(() => {
     if (!consolidatedCvfScores) return [];
-    return Object.keys(consolidatedCvfScores).map(key => {
-        const score = parseFloat(consolidatedCvfScores[key as keyof Scores].toFixed(2));
+    return (Object.keys(consolidatedCvfScores) as (keyof Scores)[]).map(key => {
+        const score = parseFloat(consolidatedCvfScores[key].toFixed(2));
         return {
-            quadrant: `${QUADRANT_LABELS[key as keyof Scores]}\n(${score.toFixed(2)})`,
+            quadrant: `${QUADRANT_LABELS[key]}\n(${score.toFixed(2)})`,
             score: score,
         };
     });
@@ -103,13 +105,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onSelectResponse, onLog
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6 border-b pb-4">
+      <div className="flex justify-between items-center mb-8 border-b pb-4">
         <h2 className="text-3xl font-bold text-gray-800">Painel do Administrador</h2>
         <Button onClick={onLogout} variant="secondary">Sair</Button>
       </div>
 
-      {/* Seção de Cultura Consolidada */}
-      {!isLoadingResponses && responses.length > 0 && consolidatedCvfScores && (
+
+      {loadingResponses ? (
+          <LoadingSkeleton />
+      ) : responses.length > 0 && consolidatedCvfScores ? (
         <div className="mb-8 bg-white p-6 rounded-lg shadow-md border border-gray-200">
             <h3 className="text-xl font-semibold text-gray-700 mb-4">Cultura Consolidada (Média CVF - {responses.length} Respostas)</h3>
             <div className="h-80 w-full max-w-md mx-auto">
@@ -138,13 +142,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onSelectResponse, onLog
               ) : null}
             </div>
         </div>
-      )}
+      ) : null}
 
-      {/* Seção de Respostas Individuais */}
       <div>
         <h3 className="text-xl font-semibold text-gray-700 mb-4">Análise de Alinhamento Individual</h3>
-        {isLoadingResponses ? (
-             <p className="text-gray-500 italic text-center py-8">Carregando respostas...</p>
+        {loadingResponses ? (
+          <LoadingSkeleton />
         ) : responses.length === 0 ? (
           <p className="text-gray-500 italic text-center py-8">Nenhuma resposta foi registrada ainda.</p>
         ) : (
