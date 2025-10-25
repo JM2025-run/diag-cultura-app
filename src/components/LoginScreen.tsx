@@ -33,7 +33,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
       </div>
       <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-800">Raio-X Empresarial</h1>
-          <p className="text-sm text-gray-500 mt-1">Acesso ao Diagnóstico de Governança Corporativa.</p>
+          <p className="text-sm text-gray-500 mt-1">Análise Integrada de Cultura e Liderança.</p>
       </div>
       <form onSubmit={handleLogin} className="space-y-4">
         <div>
