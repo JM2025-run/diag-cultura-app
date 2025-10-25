@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { CVF_QUESTIONS } from '../constants';
 import { type Scores, type Quadrant } from '../types';
 import Button from './ui/Button';
@@ -18,11 +18,35 @@ const CvfScreen: React.FC<CvfScreenProps> = ({ onSubmit }) => {
     return initial;
   });
   const [error, setError] = useState<string>('');
+  const formRef = useRef<HTMLDivElement>(null);
+
+  // Disable mouse wheel scroll on number inputs to prevent accidental changes.
+  useEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      // Check if the focused element is a number input.
+      if (document.activeElement instanceof HTMLInputElement && document.activeElement.type === 'number') {
+        // Prevent the default scroll behavior which changes the input's value.
+        event.preventDefault();
+      }
+    };
+
+    // Add the event listener to the form container.
+    // The `passive: false` option is required to allow `preventDefault()`.
+    form.addEventListener('wheel', handleWheel, { passive: false });
+
+    // Cleanup: remove the event listener when the component unmounts.
+    return () => {
+      form.removeEventListener('wheel', handleWheel);
+    };
+  }, []); // Empty dependency array ensures this effect runs only once on mount.
+
 
   const totals = useMemo(() => {
     return Object.keys(answers).map(key => {
         const index = parseInt(key, 10);
-        // FIX: Explicitly type the values array to resolve the "'val' is of type 'unknown'" error in the reduce function.
         const values: number[] = Object.values(answers[index]);
         return values.reduce((sum, val) => sum + val, 0);
     });
@@ -63,7 +87,7 @@ const CvfScreen: React.FC<CvfScreenProps> = ({ onSubmit }) => {
   };
 
   return (
-    <div className="transition-opacity duration-300">
+    <div className="transition-opacity duration-300" ref={formRef}>
       <h2 className="text-2xl font-bold text-gray-800 mb-2">Questionário de Cultura Organizacional (CVF)</h2>
       <p className="text-gray-600 mb-6">Distribua <strong>100 pontos</strong> entre as quatro opções para cada categoria, de acordo com o que melhor descreve sua empresa.</p>
       <div className="space-y-6">
@@ -77,7 +101,7 @@ const CvfScreen: React.FC<CvfScreenProps> = ({ onSubmit }) => {
                     type="number"
                     value={answers[index][option.value]}
                     onChange={(e) => handleInputChange(index, option.value, e.target.value)}
-                    className="w-20 px-2 py-1 border rounded-md text-sm text-center focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-20 px-2 py-1 border rounded-md text-sm text-center focus:ring-2 focus:ring-green-600 focus:border-green-600"
                     min="0"
                     max="100"
                   />

@@ -13,8 +13,17 @@
       body {
         font-family: 'Inter', sans-serif;
       }
+      /* Remove spinners from number inputs for a cleaner UI */
+      input[type=number]::-webkit-outer-spin-button,
+      input[type=number]::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+      input[type=number] {
+        -moz-appearance: textfield;
+      }
     </style>
-<script type="importmap">
+  <script type="importmap">
 {
   "imports": {
     "react": "https://aistudiocdn.com/react@^19.2.0",
@@ -29,7 +38,7 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50">
+  <body class="bg-slate-100">
     <div id="root"></div>
     <script type="module" src="/src/index.tsx"></script>
   </body>

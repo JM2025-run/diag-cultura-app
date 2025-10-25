@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { CVCQ_QUESTIONS } from '../constants';
 import { type Scores, type Quadrant } from '../types';
@@ -59,8 +57,7 @@ const CvcqScreen: React.FC<CvcqScreenProps> = ({ onSubmit }) => {
       <div className="space-y-6">
         {CVCQ_QUESTIONS.map((q, index) => (
           <div key={index} className="bg-gray-50 p-4 rounded-lg shadow-sm">
-            <h4 className="font-semibold text-gray-800 mb-1">Papel: {q.role}</h4>
-            <p className="text-sm text-gray-600 mb-3">{q.label}</p>
+            <p className="font-medium text-gray-700 mb-3">{q.label}</p>
             <div className="flex items-center justify-between space-x-2">
               <span className="text-sm text-gray-500 hidden sm:inline">1 (Baixa)</span>
               <div className="flex-grow flex justify-between max-w-sm mx-auto">
@@ -74,7 +71,7 @@ const CvcqScreen: React.FC<CvcqScreenProps> = ({ onSubmit }) => {
                       onChange={() => handleRadioChange(index, val)}
                       className="sr-only peer"
                     />
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-300 flex items-center justify-center text-sm font-semibold transition-colors duration-200 hover:bg-gray-200 peer-checked:bg-blue-600 peer-checked:text-white peer-checked:border-blue-600">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-gray-300 flex items-center justify-center text-sm font-semibold transition-colors duration-200 hover:bg-gray-200 peer-checked:bg-green-700 peer-checked:text-white peer-checked:border-green-700">
                       {val}
                     </div>
                   </label>

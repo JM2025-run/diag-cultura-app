@@ -159,4 +159,19 @@ export const authService = {
         cvcqScores: item.cvcq_scores,
     }));
   },
+
+  deleteUserResponse: async (responseId: number): Promise<void> => {
+    const { error } = await supabase
+      .from('responses')
+      .delete()
+      .eq('id', responseId);
+
+    if (error) {
+      console.error('Error deleting response:', error.message);
+      if (error.code === '42501' || error.message.includes('row level security')) {
+        throw new Error('Permissão negada: Verifique se a política de segurança (RLS) para exclusão (DELETE) está habilitada para administradores na tabela de respostas.');
+      }
+      throw new Error(`Erro ao excluir resposta: ${error.message}`);
+    }
+  },
 };

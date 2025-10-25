@@ -7,8 +7,11 @@ import LoginScreen from './components/LoginScreen';
 import RegistrationScreen from './components/RegistrationScreen';
 import CompletionScreen from './components/CompletionScreen';
 import AdminDashboard from './components/admin/AdminDashboard';
+import Header from './components/ui/Header';
+import Footer from './components/ui/Footer';
 import { type Scores, type User, type UserResponse, type Quadrant, type UserDetails } from './types';
 import { authService } from './auth/authService';
+import LoadingSkeleton from './components/ui/LoadingSkeleton';
 
 type UserScreen = 'intro' | 'cvf' | 'cvcq' | 'completion';
 
@@ -40,11 +43,11 @@ const App: React.FC = () => {
   }, []);
 
   const handleLogin = useCallback(async () => {
-    // Após o login, o Supabase gerencia a sessão. Apenas precisamos buscar novamente o usuário.
+    // After login, Supabase handles the session. We just need to refetch the user.
     setIsLoadingUser(true);
     const user = await authService.getCurrentUser();
     setCurrentUser(user);
-    setUserScreen('intro'); // Reseta para a tela de introdução a cada login
+    setUserScreen('intro'); // Reset to intro screen on every login
     setIsLoadingUser(false);
   }, []);
 
@@ -115,7 +118,7 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     if (isLoadingUser) {
-        return <div className="text-center"><p>Carregando...</p></div>;
+        return <div className="text-center py-16"><LoadingSkeleton /></div>;
     }
 
     if (!currentUser) {
@@ -123,14 +126,13 @@ const App: React.FC = () => {
     }
 
     if (currentUser.role === 'ADMIN') {
-       // O admin também precisa preencher o perfil na primeira vez.
-       if (!currentUser.fullName || !currentUser.position) {
+      if (!currentUser.fullName || !currentUser.position) {
          return <RegistrationScreen onRegister={handleRegister} />;
       }
       if (selectedResponse && consolidatedCvfScores) {
         return <ResultsScreen 
-                  cvfScores={consolidatedCvfScores} // Cultura consolidada
-                  cvcqScores={selectedResponse.cvcqScores} // Liderança individual
+                  cvfScores={consolidatedCvfScores} // Consolidated culture
+                  cvcqScores={selectedResponse.cvcqScores} // Individual leadership
                   onBack={handleBackToDashboard}
                   reportTitle={`Análise de Alinhamento: ${selectedResponse.fullName}`}
                   consolidatedCvfAnalysis={consolidatedCvfAnalysis}
@@ -138,7 +140,6 @@ const App: React.FC = () => {
       }
       return <AdminDashboard 
                 onSelectResponse={handleSelectResponse} 
-                onLogout={handleLogout}
                 onResponsesChange={handleResponsesChange}
                 consolidatedCvfScores={consolidatedCvfScores}
                 onCvfAnalysisComplete={setConsolidatedCvfAnalysis}
@@ -165,7 +166,7 @@ const App: React.FC = () => {
             cvfScores, 
             cvcqScores 
           };
-          return <CompletionScreen onLogout={handleLogout} userResponse={responseData} />;
+          return <CompletionScreen userResponse={responseData} />;
         }
         return <IntroScreen onStart={handleStart} username={currentUser.email} fullName={currentUser.fullName} />;
       default:
@@ -174,10 +175,14 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
-       <main className="container w-full max-w-5xl bg-white rounded-lg shadow-xl p-6 sm:p-8 transition-all duration-300">
-        {renderContent()}
-      </main>
+    <div className="flex flex-col min-h-screen">
+       {currentUser && <Header onLogout={handleLogout} />}
+       <div className="flex-grow flex flex-col items-center justify-center p-4">
+         <main className="container w-full max-w-5xl bg-white rounded-lg shadow-xl p-6 sm:p-8 transition-all duration-300">
+           {renderContent()}
+         </main>
+       </div>
+       <Footer />
     </div>
   );
 };

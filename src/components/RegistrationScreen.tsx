@@ -53,7 +53,7 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister }) =
               required
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 sm:text-sm"
             />
           </div>
         </div>
@@ -71,16 +71,12 @@ const RegistrationScreen: React.FC<RegistrationScreenProps> = ({ onRegister }) =
               required
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 sm:text-sm"
             />
           </div>
         </div>
 
-        {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
-            <p>{error}</p>
-          </div>
-        )}
+        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
 
         <div>
           <Button type="submit" size="lg" className="w-full flex justify-center" disabled={loading}>
