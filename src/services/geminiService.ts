@@ -2,7 +2,7 @@ import { GoogleGenAI } from "@google/genai";
 import { type Scores } from "../types";
 import { QUADRANT_LABELS } from "../constants";
 
-// Erro personalizado para problemas de configuração.
+// Custom error for configuration issues, allowing the UI to display a specific message.
 export class ConfigurationError extends Error {
   constructor(message: string) {
     super(message);
@@ -10,18 +10,29 @@ export class ConfigurationError extends Error {
   }
 }
 
-// Acessa corretamente a chave da API do Gemini a partir das variáveis de ambiente do Vite.
-const GEMINI_API_KEY = (import.meta as any).env.VITE_GEMINI_API_KEY;
+// FIX: Correctly access the Gemini API key from Vite's environment variables.
+// `process.env` is not available in a browser environment and causes the app to crash (white screen).
+// `import.meta.env` is the standard way to access env vars in Vite.
+// We use `(import.meta as any)` to align with the pattern in `supabaseClient.ts`
+// and avoid potential TypeScript errors in this environment.
+// Modern lazy initialization pattern to capture the Vite environment variables
+// without causing a module-load time crash.
+let aiInstance: GoogleGenAI | null = null;
 
-if (!GEMINI_API_KEY) {
-    throw new ConfigurationError("A variável de ambiente VITE_GEMINI_API_KEY não está definida.");
-}
-
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const getAiInstance = (): GoogleGenAI => {
+  if (aiInstance) return aiInstance;
+  const key = (import.meta as any).env.VITE_GEMINI_API_KEY;
+  if (!key) {
+    throw new ConfigurationError("VITE_GEMINI_API_KEY variables are missing. Please add VITE_GEMINI_API_KEY to your environment/Secrets settings.");
+  }
+  aiInstance = new GoogleGenAI({ apiKey: key });
+  return aiInstance;
+};
 
 
 const generateAnalysis = async (prompt: string): Promise<string> => {
   try {
+    const ai = getAiInstance();
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
@@ -110,6 +121,52 @@ export const analyzeCross = (cvfScores: Scores, cvcqScores: Scores): Promise<str
     
     **Recomendações para Alinhamento**
     * Forneça 2 a 3 recomendações acionáveis em bullet points para fortalecer o alinhamento ou corrigir o desalinhamento.
+  `;
+  return generateAnalysis(prompt);
+};
+
+export const analyzeDetailedCvfDistribution = (
+  scores: Scores,
+  cvfDistribution: Record<Quadrant, number>,
+  cvcqDistribution: Record<Quadrant, number>,
+  total: number
+): Promise<string> => {
+  const cvfDistStr = Object.entries(cvfDistribution)
+    .map(([key, value]) => `- ${QUADRANT_LABELS[key as keyof Scores]}: ${value} colaborador(es) (${((value / total) * 100).toFixed(1)}%)`)
+    .join('\n');
+
+  const cvcqDistStr = Object.entries(cvcqDistribution)
+    .map(([key, value]) => `- ${QUADRANT_LABELS[key as keyof Scores]}: ${value} colaborador(es) (${((value / total) * 100).toFixed(1)}%)`)
+    .join('\n');
+
+  const prompt = `
+    Você é um consultor organizacional sênior e psicólogo corporativo especializado na metodologia Competing Values Framework (CVF) e no Competing Values Competency Questionnaire (CVCQ).
+    Analise os resultados consolidados e a distribuição detalhada de perfis de uma organização com ${total} participantes.
+
+    Média Consolidada da Cultura da Empresa (CVF - Escala 0 a 100):
+    ${formatScores(scores)}
+
+    Distribuição da Percepção de Cultura Dominante por Colaborador (CVF):
+    ${cvfDistStr}
+
+    Distribuição de Competência de Liderança Dominante por Colaborador (CVCQ):
+    ${cvcqDistStr}
+
+    Sua tarefa é produzir um relatório de análise crítica altamente estratégico e acionável. Escreva em português do Brasil (pt-BR). Use formatação Markdown clara e elegante. O relatório deve conter as seguintes seções estruturadas:
+
+    ### 1. Diagnóstico da Coesão Cultural
+    Analise a dispersão ou concentração na percepção da cultura. Uma alta concentração (ex: maioria percebe Clã) indica alinhamento forte; uma dispersão (vários perfis percebidos) indica fragmentação ou subculturas. Explique os impactos práticos disso.
+
+    ### 2. Sinergia entre Cultura e Competências de Liderança
+    Cruze a distribuição da percepção de cultura (CVF) com as competências de liderança declaradas (CVCQ). A liderança predominante estimula a cultura percebida ou há um descompasso (ex: cultura vista como Clã, mas líderes com perfil predominante de Mercado ou Hierarquia)? 
+
+    ### 3. Principais Riscos e Pontos Cegos Organizacionais
+    Destaque de 2 a 3 riscos críticos baseados nos desvios entre o que a cultura consolidada exige e o estilo de liderança dos colaboradores (ex: risco de estagnação por excesso de Clã, ou risco de descontrole por falta de processos organizados).
+
+    ### 4. Recomendações Estratégicas para Desenvolvimento
+    Forneça recomendações acionáveis em bullet points divididas em curto prazo (ajustes imediatos ou workshops) e médio/longo prazo (processos de desenvolvimento ou contratações).
+
+    Mantenha um tom profissional, analítico, focado em insights agregadores para quem está conduzindo a consultoria.
   `;
   return generateAnalysis(prompt);
 };
